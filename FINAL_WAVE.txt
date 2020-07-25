@@ -1,0 +1,185 @@
+--Creating the Wave Database
+CREATE DATABASE wave
+
+
+--Creating the Table Users
+CREATE TABLE users (
+u_id integer PRIMARY KEY,
+name text NOT NULL,
+mobile text NOT NULL,
+wallet_id integer NOT NULL,
+when_created timestamp NOT NULL,
+country varchar(50) NOT NULL,
+city varchar(30));
+
+--Inserting Dummy data into the Table Users
+INSERT INTO users VALUES
+(1, 'Esther Doom', '0245214786', 1501248, NOW(), 'Ghana', 'Kibi'),
+(2, 'Billy Kwofie', '0274143698', 1504789, NOW(), 'Ghana', 'Tarkwa'),
+(3, 'Kofi Aflu', '0268961203', 1504751, NOW(), 'Togo', 'Lome'),
+(4, 'Barbara Michelle', '0275620871', 1503780, NOW(), 'Cote D-Ivoire', 'Abidjan'),
+(5, 'Kennedy Kobina', '0578460097', 1506872, NOW(), 'Ghana', 'Cape Coast'),
+(6, 'Kate Nyolu', '0556503789', 1501149, NOW(), 'Ghana', 'Kintampo'),
+(7, 'Daniel Kimmich', '0543876541', 1503068, NOW(), 'Germany', 'Berlin');
+
+
+--Creating the Transfer table
+CREATE TABLE transfers (
+transfer_id integer PRIMARY KEY,
+u_id integer NOT NULL,
+source_wallet_id integer NOT NULL,
+dest_wallet_id integer NOT NULL,
+send_amount_currency text NOT NULL,
+send_amount_scalar numeric NOT NULL,
+receive_amount_currency text NOT NULL,
+receive_amount_scalar numeric NOT NULL,
+kind text NOT NULL,
+dest_mobile text,
+dest_merchant_id integer,
+when_created timestamp NOT NULL,
+transaction_speed varchar(10) NOT NULL);
+
+--Inserting Dummy data into the Transfer Table
+INSERT INTO transfers VALUES
+(229033, 3, 1504751, 1507286, 'CFA', 2005.12, 'GHS', 4221.35, 'transfer', '0237845111', 339525, 
+ '2019-01-02 08:05:01', 'fast' ),
+(229102, 7, 1503068, 1504751, 'CFA', 125.34, 'USD', 22.1, 'payment', '0268961203', 339014, 
+ '2019-01-02 12:12:34', 'very fast' ),
+(229076, 8, 1502455, 1501248, 'GBP', 1433.12, 'GHS', 8546.42, 'deposit', '0245214786', 339741, 
+ '2019-02-18 11:20:54', ' slow' );
+
+
+--Creating the Agents Table
+CREATE TABLE agents (
+agent_id integer PRIMARY KEY,
+name text,
+country text NOT NULL,
+region text,
+city text,
+subcity text,
+when_created timestamp NOT NULL,
+gender char(1) NOT NULL);
+
+--Inserting Dummy data into the Agents Table
+INSERT INTO agents VALUES
+(1001, 'Emmanuel Couzzie', 'Ghana', 'Volta', 'Ho', '', '2019-02-24 15:42:31', 'F'),
+(1002, 'Kwesi Biney', 'Ghana', 'Western', 'Takoradi', 'Westline', '2019-03-15 13:22:38', 'M'),
+(1003, 'Florence Oduro', 'Ghana', 'Central', 'CapeCoast', 'Anomabo', '2019-04-09 09:48:58', 'F'),
+(1004, 'Magdeline Kuntu', 'Ghana', 'Ahafo', 'Sunyani', 'Bechem', '2019-05-27 11:36:43', 'F');
+
+
+--Creating the Agent_Transactions Table
+CREATE TABLE agent_transactions (
+atx_id integer PRIMARY KEY,
+u_id integer NOT NULL,
+agent_id integer NOT NULL,
+amount numeric NOT NULL,
+fee_amount_scalar numeric NOT NULL,
+when_created timestamp NOT NULL,
+transaction_speed varchar(10) NOT NULL);
+
+--Inserting Dummy data into the Agent_Transactions Table
+INSERT INTO agent_transactions VALUES
+(227582, '9', '1001', '2458.12', '50.5', '2018-01-24 14:06:25', 'slow'),
+(227115, '10', '1002', '540.35', '6.2', '2018-03-16 16:26:45', 'fast'),
+(227205, '11', '1004', '1258.95', '14.35', '2018-05-05 13:13:13', 'slow'),
+(227996, '12', '1003', '3068.27', '32.45', '2019-06-02 10:28:44', 'very fast');
+
+
+--Creating Wallets Table
+CREATE TABLE wallets (
+wallet_id integer PRIMARY KEY,
+currency text NOT NULL,
+ledger_location text NOT NULL,
+when_created timestamp NOT NULL,
+branch_created varchar(40) NOT NULL);
+
+--Inserting Dummy data into the Wallets Table
+INSERT INTO wallets VALUES
+(1504789, 'CFA', 'Takoradi', '2019-03-15 13:22:38', 'WaveTakoradi'),
+(1503780, 'GHS', 'Cape Coast', '2019-04-09 09:48:58', 'WaveCape Coast'),
+(1501149, 'CFA', 'Sunyani', '2019-05-27 11:36:43', 'WaveSunyani');
+
+
+
+/*ANSWERS OR QUERRIES TO THE DATABASE HAVE BEEN GIVEN BELOW*/
+--QuestionOne
+SELECT COUNT(*) FROM users;
+
+
+--QuestionTwo
+SELECT COUNT(*) from transfers
+WHERE send_amount_currency = 'CFA' AND 
+	(kind = 'transfer' OR  kind = 'payment');
+
+
+--QQuestionThree
+SELECT COUNT(DISTINCT(u_id)) FROM transfers
+WHERE send_amount_currency = 'CFA' AND 
+	(kind = 'transfer' OR  kind = 'payment');
+
+
+--QuestionFour
+SELECT COUNT(atx_id) FROM agent_transactions
+WHERE EXTRACT(YEAR FROM when_created) = 2018
+GROUP BY EXTRACT(MONTH FROM when_created);
+
+
+---QuestionFive
+/*THERE ARE TWO ALTENATIVES TO THIS QUESTION. WITH THE FIRST ALTERNATIVE, YOU RUN THE FIRST AND THE SECOND QUERY SEPARATELY.
+FOR THE SECOND ALTERNATIVE, YOU RUN THE WHOLE QUERY TOGETHER*/
+--FIRST ALTERNATIVE
+SELECT COUNT(*) AS NetDepositors FROM agent_transactions
+WHERE amount < 0;
+SELECT COUNT(*) AS NetWithdrawers FROM agent_transactions
+WHERE amount > 0;
+
+---SECOND ALTERNATIVE
+SELECT COUNT(A.amount) AS NetDepositors, COUNT(B.amount) AS NetWithdrawers
+FROM agent_transactions A, agent_transactions B
+WHERE A.amount < 0 AND B.amount > 0;
+
+
+--QuestionSix
+SELECT City, Volume INTO AtxVolumeCitySummary FROM 
+	(SELECT agents.city AS City, count(agent_transactions.atx_id) AS Volume FROM agents 
+		INNER JOIN agent_transactions 
+		ON agents.agent_id = agent_transactions.agent_id 
+		WHERE (agent_transactions.when_created > (NOW() - INTERVAL '1 week')) 
+	GROUP BY agents.city) as AtxVolumeSummary; 
+SELECT * FROM AtxVolumeCitySummary;
+
+
+--QuestionSeven
+SELECT City, Volume, Country INTO AtxVolumeCitySummaryByCountry 
+FROM 
+	( SELECT agents.city AS City, agents.country AS Country, count(agent_transactions.atx_id) AS Volume FROM agents 
+		INNER JOIN agent_transactions 
+		ON agents.agent_id = agent_transactions.agent_id 
+		WHERE (agent_transactions.when_created > (NOW() - INTERVAL '1 week')) 
+	GROUP BY agents.country,agents.city) as AtxVolumeCitySummaryByCountry; 
+SELECT * FROM AtxVolumeCitySummaryByCountry;
+
+
+--QuestionEight
+SELECT SUM(transfers.send_amount_scalar) AS Volume, transfers.kind AS TransferKind, wallets.ledger_location AS Country 
+FROM transfers 
+INNER JOIN wallets
+ON transfers.source_wallet_id = wallets.wallet_id 
+WHERE (transfers.when_created > (NOW() - INTERVAL '1 week'))
+GROUP BY wallets.ledger_location, transfers.kind;
+
+
+--QuestionNine
+SELECT COUNT(transfer_id) AS TransactionCount, count(transfers.source_wallet_id) AS UniqueSenders, 
+transfers.kind AS transfer_Kind, wallets.ledger_location AS Country, SUM(transfers.send_amount_scalar) AS Volume FROM transfers 
+INNER JOIN wallets 
+ON transfers.source_wallet_id = wallets.wallet_id 
+WHERE (transfers.when_created > (NOW() - INTERVAL '1 week'))
+GROUP BY wallets.ledger_location, transfers.kind; 
+
+--QuestionTen
+SELECT source_wallet_id, send_amount_scalar FROM transfers 
+WHERE send_amount_currency = 'CFA' 
+AND (send_amount_scalar > 10000000) 
+AND (transfers.when_created > (NOW() - INTERVAL '1 month'));
